@@ -39,6 +39,8 @@ library(raster)
 library(MuMIn)
 library(sjPlot)
 library(rmacrostrat)
+library(sf)
+library(rnaturalearth)
 
 ################################################################################
 # 2. FUNCTIONS
@@ -119,23 +121,14 @@ split <- function(data, Var2, order = FALSE, stage = FALSE){
 }
 
 # Function for making maps
-get_grid_im <- function(data, res, name, ext){ # Data is first output from combine_data (fossil.colls). Res is chosen resolution in degrees. name is user inputted string related to data inputted, for display on graphs. 
+get_grid_im <- function(data, res, ext){ # Data is first output from combine_data (fossil.colls). Res is chosen resolution in degrees. name is user inputted string related to data inputted, for display on graphs. 
   xy <- cbind(as.double(data$lng), as.double(data$lat))
-  #xy <- unique(xy)
   r <- raster::raster(ext = ext, res = res)
   r <- raster::rasterize(xy, r, fun = 'count')
-  #r[r > 0] <- 1 # Remove if you want values instead of pure presence/absence.
-  countries <- maps::map("world", plot=FALSE, fill = TRUE) # find map to use as backdrop
-  countries <<- maptools::map2SpatialPolygons(countries, IDs = countries$names, proj4string = CRS("+proj=longlat")) # Turn map into spatialpolygons
+  world <- as_Spatial(ne_countries(returnclass = "sf"))
   mapTheme <- rasterVis::rasterTheme(region=viridis(8))
-  print(rasterVis::levelplot(r, margin=F, par.settings=mapTheme,  main = paste("Total ", (substitute(name)), " per Grid Cell", sep = "")) + #create levelplot for raster
-          #   latticeExtra::layer(sp.polygons(states, col = "white", fill = NA), under = T)  + # Plots state lines
-          latticeExtra::layer(sp.polygons(countries, col = 0, fill = "light grey"), under = T)) # Plots background colour
-  hist(r, breaks = 20,
-       main = paste((substitute(name)), " per Grid Cell", sep = ""),
-       xlab = "Number of Collections", ylab = "Number of Grid Cells",
-       col = "springgreen")
-  r <<- r
+  rasterVis::levelplot(r, margin=F, par.settings=mapTheme) + #create levelplot for raster
+    latticeExtra::layer(sp.polygons(world, col = "white", fill = "#F0F0F0", lwd = 0.5), under = T)
 }
 
 # Make grainsize into fine and coarse grained

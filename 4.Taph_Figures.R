@@ -220,10 +220,10 @@ ctable <- read.csv("Results/ctable.csv")
 
 ctable$PresScore <- as.factor(ctable$PresScore)
 ctable <- ctable %>%
-  filter(!(`Std..Error` > 10))
+  dplyr::filter(!(`Std..Error` > 20)) 
 
 ctable[ctable == "`Age (Ma)`"] <- "Age (Ma)"
-ctable[ctable == "`Palaeo-latitude`"] <- "Palaeo-latitude"
+ctable[ctable == "`Palaeo-latitude`"] <- "Palaeo-latitude bin"
 ctable[ctable == "(Intercept)"] <- "Intercept"
 ctable[ctable == "GrainsizeFine Grained"] <- "Grainsize: Fine Grained"
 ctable[ctable == "LithologySiliciclastic"] <- "Lithology: Siliciclastic"
@@ -232,6 +232,9 @@ ctable[ctable == "GrainsizeFine Grained:LithologySiliciclastic"] <-
  
 ctable <- ctable[order(ctable$Covariate),]
 ctable <- ctable[order(ctable$PresScore),]
+
+ctable <- ctable %>%
+  dplyr::filter(Covariate != "Intercept") 
 
 forestplot(
   df = ctable,
@@ -252,4 +255,3 @@ forestplot(
                                       fill=NA, linewidth=0.5)) + 
   scale_colour_manual(values = wesanderson::wes_palette("Zissou1", 
                                                         type = 'discrete'))
-

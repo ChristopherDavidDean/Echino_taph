@@ -183,6 +183,10 @@ m.dat.rotate$p_lat_bin_2 <- lbins$label[match(m.dat.rotate$p_lat_bin, lbins$bin)
 order_ind <- rev(lbins$label)
 m.dat.rotate$p_lat_bin_2 <- factor(m.dat.rotate$p_lat_bin_2, levels = order_ind)
 
+# Make new column for palaeo lat. bin categories 
+m.dat.rotate$lat_bin_2 <- lbins$label[match(m.dat.rotate$lat_bin, lbins$bin)]
+m.dat.rotate$lat_bin_2 <- factor(m.dat.rotate$lat_bin_2, levels = order_ind)
+
 ################################################################################
 # 4. MACROSTRAT SETUP
 ################################################################################
@@ -284,7 +288,7 @@ g.m.dat <- g.m.dat %>%
 f.m.dat <- m.dat %>%
   filter(is.na(Family) == F) %>%
   filter(Family != 'Triadotiaridae') %>%
-  filter(Family != 'Cravenechinidae') %>%
+  #filter(Family != 'Cravenechinidae') %>%
   filter(Family != 'Archaeocidaridae or miocidaridae')
 
 ################################################################################

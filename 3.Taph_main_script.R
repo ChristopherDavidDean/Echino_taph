@@ -145,9 +145,9 @@ ggplot(f.m.dat) +
   xlab("Family") +
   coord_flip() +
   labs(fill="Taphonomic grade") +
-  scale_fill_manual(values=(wes_palette("Zissou1"))) +
+  scale_fill_manual(values=(rev(wes_palette("Zissou1")))) +
   theme_bw() +
-  scale_y_continuous(expand = c(0,0), limits = c(0,1))
+  scale_y_reverse(expand = c(0,0))
 
 # Format into table and run Chi-Squared test
 res.fam <- chisq.test(table(f.m.dat$Preservation_score, f.m.dat$Family))
@@ -168,28 +168,41 @@ vcd::mosaic(~ Preservation_score + Family,
 ##### LATITUDINAL BINS #####
 ############################
 
+TG <- seq(5,1,-1)
+m.dat.rotate$Preservation_score <- factor(m.dat.rotate$Preservation_score, levels = TG)
+
 # Make  bar plot, using taph. grades as variable
-ggplot(m.dat.rotate) +
+(a <- ggplot(m.dat.rotate) +
   aes(x = p_lat_bin_2, fill = as.factor(Preservation_score)) +
   geom_bar() +
-  ylab("Proportion of total") +
-  xlab("Palaeo Latitudinal bin") +
+  scale_fill_discrete(drop=FALSE) +
+  scale_x_discrete(drop=FALSE) +
+  ylab("Frequency") +
+  xlab("Palaeo-Latitudinal bin") +
   coord_flip() +
   labs(fill="Taphonomic grade") +
   scale_fill_manual(values=(wes_palette("Zissou1"))) +
-  theme_bw() 
+  theme_bw())
 
 # Make proportional bar plot, using taph. grades as variable
-ggplot(m.dat.rotate) +
-  aes(x = p_lat_bin_2, fill = as.factor(Preservation_score)) +
-  geom_bar(position = "fill") +
-  ylab("Proportion of total") +
-  xlab("Palaeo Latitudinal bin") +
+(b <- ggplot(m.dat.rotate) +
+  aes(x = lat_bin_2, fill = as.factor(Preservation_score)) +
+  geom_bar() +
+  ylab("Frequency") +
+  xlab("Latitudinal bin") +
+  scale_fill_discrete(drop=FALSE) +
+  scale_x_discrete(drop=FALSE) +
   coord_flip() +
   labs(fill="Taphonomic grade") +
   scale_fill_manual(values=(wes_palette("Zissou1"))) +
-  theme_bw()  +
-  scale_y_continuous(expand = c(0,0), limits = c(0,1))
+  theme_bw())   
+
+
+ggarrange(a, b, 
+          nrow = 1, 
+          labels = c("A", "B"), 
+          common.legend = T,
+          legend = "bottom")
 
 # Format into table and run Chi Squared test
 res.grain <- chisq.test(table(m.dat.rotate$Preservation_score, m.dat.rotate$p_lat_bin))
@@ -425,6 +438,29 @@ test$mid_ma <- as.numeric(as.character(test$mid_ma))
                              wes_palette("Zissou1"), 
                              wes_palette("Royal2"))))
 
+# Taphonomic grade
+test <- as.data.frame(table(m.dat$Preservation_score, m.dat$bin_midpoint, m.dat$Family))
+names(test) <- c("Preservation_score", "mid_ma", "Family", "Freq")
+test$mid_ma <- as.numeric(as.character(test$mid_ma))
+test$Preservation_score <- factor(test$Preservation_score, 
+                                  levels = c("5", "4", "3", "2", "1"))
+ggplot(test, aes(x=mid_ma, y=Freq, fill=Preservation_score)) + 
+    geom_area() +
+    scale_x_reverse() +
+    theme_bw() +
+    coord_geo(dat = series2, 
+              xlim = c(485.4, 251.902),
+              rot = list(0),
+              size = 4,
+              pos = list("b"),
+              abbrv = T) +
+    guides(fill=guide_legend(title="Taphonomic grade")) +
+    ylab("Frequency") +
+    xlab("Time (Ma)") +
+    scale_fill_manual(values=(wes_palette("Zissou1"))) +
+  facet_wrap(~ Family) +
+  theme(legend.position="bottom")
+
 ##### SERIES LEVEL #####
 
 # Plot Taphonomic grade per time period (discreet)
@@ -518,6 +554,31 @@ vcd::mosaic(~ Preservation_score + bin_assignment,
                             set_varnames = c(Preservation_score = "Taphonomic grade",
                                              bin_assignment = ""))
 )
+
+# Plot Taphonomic grades through time (continuous)
+a <- as.data.frame(table(m.dat.series$Preservation_score, 
+                         m.dat.series$bin_assignment, 
+                         m.dat.series$Family))
+names(a) <- c("Preservation_score", "bin", "Family", "Freq")
+a <- merge(a, series, by = 'bin')
+a$Preservation_score <- factor(a$Preservation_score, 
+                               levels = c("5", "4", "3", "2", "1"))
+ggplot(a, aes(x=mid_ma, y=Freq, fill=Preservation_score)) + 
+    geom_area() +
+    scale_x_reverse() +
+    theme_bw() +
+    coord_geo(dat = series2, 
+              xlim = c(485.4, 251.902),
+              rot = list(0),
+              size = 4,
+              pos = list("b"),
+              abbrv = T) +
+    guides(fill=guide_legend(title="Taphonomic grade")) +
+    ylab("Frequency") +
+    xlab("Time (Ma)") +
+    scale_fill_manual(values=(wes_palette("Zissou1"))) +
+  facet_wrap( ~ Family) +
+  theme(legend.position="bottom")
 
 ################################################################################
 # 4. RUNNING MODELS
@@ -1126,9 +1187,10 @@ a$Preservation_score <- as.factor(a$Preservation_score)
 
 # Split results by taxonomic rank
 ggplot(a, aes(x=bin_midpoint, y=test)) + 
-    geom_line(aes(colour = Rank)) +
+    geom_line(aes(colour = Rank), linewidth = 0.8) +
     scale_x_reverse() +
     theme_bw() +
+    scale_color_manual(values=wes_palette("Zissou1")) + 
     coord_geo(dat = series2, 
               xlim = c(485.4, 251.902),
               rot = list(0),
@@ -1683,6 +1745,7 @@ ggplot(stage.pres.all, aes(x=bin_midpoint, y=Freq)) +
   geom_line(aes(color = Preservation_score)) +
   scale_x_reverse() +
   theme_bw() +
+  scale_color_manual(values=rev(wes_palette("Zissou1"))) + 
   coord_geo(dat = series2, 
             xlim = c(485.4, 251.902),
             rot = list(0),
@@ -1690,8 +1753,10 @@ ggplot(stage.pres.all, aes(x=bin_midpoint, y=Freq)) +
             pos = list("b"),
             abbrv = T) +
   ylab("Count") +
-  xlab("Time (Ma)") 
-
+  xlab("Time (Ma)") +
+  labs(color = "Taphonomic Grade") +
+  facet_wrap(~ Preservation_score, ncol = 1) +
+  theme(legend.position="bottom")
 
 # Taphonomic grade vs. carbonate (count), stage level
 stage.sea.level.1 <- cor.test(log10(sea.lvl$mean_sl), 
@@ -1784,16 +1849,77 @@ write.csv(cor.results, "Results/All_correlations_BH_corrected.csv")
 e <- extent(-180, 180, -90, 90)
 
 ##### ALL SPECIMENS #####
-get_grid_im(m.dat, 2,  "Echinoids", ext = e)
+get_grid_im(m.dat, 4,  ext = e)
 
 ##### TAPH GRADES #####
-get_grid_im(dplyr::filter(m.dat, Preservation_score == 1), 2,  
-            "Taphonomic Grade 1 Echinoids", ext = e)
-get_grid_im(dplyr::filter(m.dat, Preservation_score == 2), 2,  
-            "Taphonomic Grade 2 Echinoids", ext = e)
-get_grid_im(dplyr::filter(m.dat, Preservation_score == 3), 2,  
-            "Taphonomic Grade 3 Echinoids", ext = e)
-get_grid_im(dplyr::filter(m.dat, Preservation_score == 4), 2,  
-            "Taphonomic Grade 4 Echinoids", ext = e)
-get_grid_im(dplyr::filter(m.dat, Preservation_score == 5), 2,  
-            "Taphonomic Grade 5 Echinoids", ext = e)
+get_grid_im(dplyr::filter(m.dat, Preservation_score == 1), 4, ext = e)
+get_grid_im(dplyr::filter(m.dat, Preservation_score == 2), 4, ext = e)
+get_grid_im(dplyr::filter(m.dat, Preservation_score == 3), 4, ext = e)
+get_grid_im(dplyr::filter(m.dat, Preservation_score == 4), 4, ext = e)
+get_grid_im(dplyr::filter(m.dat, Preservation_score == 5), 4, ext = e)
+
+##### COMBINING FIGURES #####
+
+# Set resolution
+res <- 5
+
+# Set list of taphonomic grades
+TG.list <- c(1, 2, 3, 4, 5)
+
+# Create rasters for each taphonomic grade
+test <- lapply(TG.list, function(x){
+  data <- dplyr::filter(m.dat, Preservation_score == x)
+  xy <- cbind(as.double(data$lng), as.double(data$lat))
+  r <- raster::raster(ext = ext, res = res)
+  r <- raster::rasterize(xy, r, fun = 'count')
+  return(r)
+})
+
+# Get raster for total data
+xy <- cbind(as.double(m.dat$lng), as.double(m.dat$lat))
+r <- raster::raster(ext = e, res = res)
+r <- raster::rasterize(xy, r, fun = 'count')
+
+# Make a list of names for rasters
+raster.names <- c("All", "TG 1", "TG 2", "TG 3", "TG 4", "TG 5")
+
+# Stack the rasters
+stacked.ras <- stack(r, test[[1]], test[[2]], test[[3]], test[[4]], test[[5]])
+names(stacked.ras) <- raster.names
+
+# Get background
+world <- as_Spatial(ne_countries(returnclass = "sf"))
+
+# Make levelplot
+(a <- rasterVis::levelplot(stacked.ras, margin=F, par.settings=mapTheme, name.attr = raster.names) + #create levelplot for raster
+  latticeExtra::layer(sp.polygons(world, col = "white", fill = "#F0F0F0", lwd = 0.5), under = T))
+
+# Taphonomic grade
+test <- as.data.frame(table(m.dat$Preservation_score, m.dat$bin_midpoint))
+names(test) <- c("Preservation_score", "mid_ma", "Freq")
+test$mid_ma <- as.numeric(as.character(test$mid_ma))
+test$Preservation_score <- factor(test$Preservation_score, 
+                                  levels = c("5", "4", "3", "2", "1"))
+b <- ggplot(test, aes(x=mid_ma, y=Freq, fill=Preservation_score)) + 
+    geom_area() +
+    scale_x_reverse() +
+    theme_bw() +
+    coord_geo(dat = series2, 
+              xlim = c(485.4, 251.902),
+              rot = list(0),
+              size = 4,
+              pos = list("b"),
+              abbrv = T) +
+    guides(fill=guide_legend(title="Taphonomic grade")) +
+    ylab("Frequency") +
+    xlab("Time (Ma)") +
+    scale_fill_manual(values=(wes_palette("Zissou1"))) +
+    theme(legend.position = "bottom")
+
+# Combine
+ ggpubr::ggarrange(a, b, 
+                   widths = c(1.5, 0.5),
+                   heights = c(1, 0.6),
+                 labels = c("A", "B"),
+                 nrow = 2, 
+                 ncol = 1)
