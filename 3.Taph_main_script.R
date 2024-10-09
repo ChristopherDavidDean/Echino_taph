@@ -164,6 +164,49 @@ vcd::mosaic(~ Preservation_score + Family,
        shade = TRUE
 )
 
+############################
+##### LATITUDINAL BINS #####
+############################
+
+# Make  bar plot, using taph. grades as variable
+ggplot(m.dat.rotate) +
+  aes(x = p_lat_bin_2, fill = as.factor(Preservation_score)) +
+  geom_bar() +
+  ylab("Proportion of total") +
+  xlab("Palaeo Latitudinal bin") +
+  coord_flip() +
+  labs(fill="Taphonomic grade") +
+  scale_fill_manual(values=(wes_palette("Zissou1"))) +
+  theme_bw() 
+
+# Make proportional bar plot, using taph. grades as variable
+ggplot(m.dat.rotate) +
+  aes(x = p_lat_bin_2, fill = as.factor(Preservation_score)) +
+  geom_bar(position = "fill") +
+  ylab("Proportion of total") +
+  xlab("Palaeo Latitudinal bin") +
+  coord_flip() +
+  labs(fill="Taphonomic grade") +
+  scale_fill_manual(values=(wes_palette("Zissou1"))) +
+  theme_bw()  +
+  scale_y_continuous(expand = c(0,0), limits = c(0,1))
+
+# Format into table and run Chi Squared test
+res.grain <- chisq.test(table(m.dat.rotate$Preservation_score, m.dat.rotate$p_lat_bin))
+res.grain
+res.grain$expected # compare against what the test would have expected
+
+# Mosaic plot
+vcd::mosaic(~ Preservation_score + p_lat_bin_2,
+            direction = c("v", "h"),
+            data = m.dat.rotate,
+            labeling_args = list(just_labels = "right", 
+                                 set_varnames = c(Preservation_score = "Taphonomic grade", 
+                                                  p_lat_bin_2 = "Palaeolatitudinal bins")),
+            shade = TRUE, 
+            labeling = vcd::labeling_border(rot_labels = c(90, 0)))
+
+
 ################################################################################
 # 3. TEMPORAL PATTERNS
 ################################################################################
@@ -510,12 +553,13 @@ model.data$Preservation_score <- factor(model.data$Preservation_score,
 
 # Remove families with low numbers (Cravenechinidae - 2 specimens) and NAs
 data.set <- model.data %>%
-  filter(Family != 'Cravenechinidae') %>%
-  filter(!is.na(Family)) %>%
+#  filter(Family != 'Cravenechinidae') %>%
+# filter(!is.na(Family)) %>%
   dplyr::select(Family, Genus, Species, Rank, Museum_Number, Preservation_score, 
                 Continent, Country, lat, lng, Formation, Age, Max_period, 
                 Min_period, Finalised_lith, Finalised_grainsize_simp, max_ma, 
-                min_ma, bin_assignment, interval_mid_ma, p_lng, p_lat)
+                min_ma, bin_assignment, interval_mid_ma, p_lng, p_lat, p_lat, p_lat_bin_2,
+                lat_bin)
 
 ###############################
 ##### LOGISTIC REGRESSION #####
@@ -532,12 +576,20 @@ LRresults <- lapply(pres.score, function(f){
   colnames(data.LR)[colnames(data.LR) == "interval_mid_ma"] <- "Age (Ma)"
   colnames(data.LR)[colnames(data.LR) == "Finalised_lith"] <- "Lithology"
   colnames(data.LR)[colnames(data.LR) == "Finalised_grainsize_simp"] <- "Grainsize"
+  colnames(data.LR)[colnames(data.LR) == "p_lat_bin_2"] <- "Palaeo-latitude bin"
+  colnames(data.LR)[colnames(data.LR) == "lat_bin"] <- "Latitudinal bin"
   
-  # Set full model
+  # Set full model - continuous lat bins
   full.model <- glm(formula = LR_Pres_score ~ Lithology + Grainsize +  
                       Latitude + `Age (Ma)` + `Palaeo-latitude` + Lithology*Grainsize, 
                     family = binomial(link = "logit"), 
                     data = data.LR)
+  
+  # Set full model - discrete lat bins
+  #full.model <- glm(formula = LR_Pres_score ~ Lithology + Grainsize +  
+  #                    `Latitudinal bin` + `Age (Ma)` + `Palaeo-latitude bin` + Lithology*Grainsize, 
+  #                  family = binomial(link = "logit"), 
+  #                  data = data.LR)
   
   # Alter global actions to allow for dredge
   options(na.action = "na.fail") 
@@ -594,7 +646,6 @@ write.csv(LRresults[[4]][4],
 write.csv(LRresults[[5]][4], 
           file = "Results/Taph_5_Models.csv", 
           row.names = TRUE)
-
 
 ################################################################################
 # 5. CORRELATION TESTS
@@ -1602,6 +1653,87 @@ period.macro.sili.area  <- rbind(c("Period", 1, "Macrostrat siliciclastic (area)
                                    period.sili.macro.area.5$estimate, 
                                    period.sili.macro.area.5$p.value))
 
+#################################
+##### SEA LEVEL CORRELATION #####
+#################################
+
+# Setup
+sea.lvl <- sea.lvl %>%
+  dplyr::filter(bin_midpoint < 481.6 & bin_midpoint > 253.01)
+
+# Plots
+
+ggplot(sea.lvl, aes(x=bin_midpoint, y=mean_sl)) + 
+    geom_line() +
+    scale_x_reverse() +
+    theme_bw() +
+    coord_geo(dat = series2, 
+              xlim = c(485.4, 251.902),
+              rot = list(0),
+              size = 4,
+              pos = list("b"),
+              abbrv = T) +
+    ylab("Count") +
+    xlab("Time (Ma)") 
+
+stage.pres.all$bin_midpoint <- as.character(stage.pres.all$bin_midpoint)
+stage.pres.all$bin_midpoint <- as.numeric(stage.pres.all$bin_midpoint)
+
+ggplot(stage.pres.all, aes(x=bin_midpoint, y=Freq)) + 
+  geom_line(aes(color = Preservation_score)) +
+  scale_x_reverse() +
+  theme_bw() +
+  coord_geo(dat = series2, 
+            xlim = c(485.4, 251.902),
+            rot = list(0),
+            size = 4,
+            pos = list("b"),
+            abbrv = T) +
+  ylab("Count") +
+  xlab("Time (Ma)") 
+
+
+# Taphonomic grade vs. carbonate (count), stage level
+stage.sea.level.1 <- cor.test(log10(sea.lvl$mean_sl), 
+                               log10(stage.pres.all.1$Freq), method = 'spearman')
+stage.sea.level.2 <- cor.test(log10(sea.lvl$mean_sl), 
+                               log10(stage.pres.all.2$Freq), method = 'spearman')
+stage.sea.level.3 <- cor.test(log10(sea.lvl$mean_sl), 
+                               log10(stage.pres.all.3$Freq), method = 'spearman')
+stage.sea.level.4 <- cor.test(log10(sea.lvl$mean_sl), 
+                               log10(stage.pres.all.4$Freq), method = 'spearman')
+stage.sea.level.5 <- cor.test(log10(sea.lvl$mean_sl), 
+                               log10(stage.pres.all.5$Freq), method = 'spearman')
+
+stage.sea.level.ratio.1 <- cor.test(log10(sea.lvl$mean_sl), 
+                                           log10(stage.pres.ratio$ratio_1), 
+                                           method = 'spearman')
+stage.sea.level.ratio.5 <- cor.test(log10(sea.lvl$mean_sl), 
+                                           log10(stage.pres.ratio$ratio_5), 
+                                           method = 'spearman')
+
+stage.sea.level <- rbind(c("Stage", 1, "Mean sea level",
+                           stage.sea.level.1$estimate,
+                           stage.sea.level.1$p.value),
+                         c("Stage", 2, "Mean sea level",
+                           stage.sea.level.2$estimate, 
+                           stage.sea.level.2$p.value),
+                         c("Stage", 3, "Mean sea level",
+                           stage.sea.level.3$estimate, 
+                           stage.sea.level.3$p.value),
+                         c("Stage", 4, "Mean sea level",
+                           stage.sea.level.4$estimate, 
+                           stage.sea.level.4$p.value),
+                         c("Stage", 5, "Mean sea level",
+                           stage.sea.level.5$estimate,
+                           stage.sea.level.5$p.value), 
+                         c("Stage", "Ratio 1", "Mean sea level",
+                           stage.sea.level.ratio.1$estimate,
+                           stage.sea.level.ratio.1$p.value), 
+                         c("Stage", "Ratio 5", "Mean sea level",
+                           stage.sea.level.ratio.5$estimate,
+                           stage.sea.level.ratio.5$p.value))
+
 ############################
 ##### COMPLETE RESULTS #####
 ############################
@@ -1624,7 +1756,8 @@ cor.results <- as.data.frame(rbind(stage.div.spec,
                      period.macro.carb.count,
                      period.macro.sili.count,
                      period.macro.carb.area,
-                     period.macro.sili.area
+                     period.macro.sili.area, 
+                     stage.sea.level
 ))
 
 # Setup columns

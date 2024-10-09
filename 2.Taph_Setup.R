@@ -175,6 +175,14 @@ names(m.dat.rotate)[names(m.dat.rotate) == 'lat_min'] <- "p_lat_min"
 # Bin latitude
 m.dat.rotate <- bin_lat(occdf = m.dat.rotate, bins = lbins, lat = "lat")
 
+# Make label
+lbins$label <- paste(lbins$min, " to ", lbins$max, sep = "")
+
+# Make new column for palaeo lat. bin categories 
+m.dat.rotate$p_lat_bin_2 <- lbins$label[match(m.dat.rotate$p_lat_bin, lbins$bin)]
+order_ind <- rev(lbins$label)
+m.dat.rotate$p_lat_bin_2 <- factor(m.dat.rotate$p_lat_bin_2, levels = order_ind)
+
 ################################################################################
 # 4. MACROSTRAT SETUP
 ################################################################################
