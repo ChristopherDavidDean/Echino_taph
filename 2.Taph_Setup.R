@@ -154,13 +154,34 @@ m.dat.rotate <- palaeorotate(m.dat.rotate,
              model = "PALEOMAP",
              method = "point")
 
+##### LAT/P-LAT BINS #####
+
+# Filter for specimens without palaeo lat
+m.dat.rotate <- m.dat.rotate %>%
+  dplyr::filter(is.na(p_lat) == F)
+
+# Make lat bins
+lbins <- lat_bins_degrees(size = 20)
+
+# Bin palaeolatitude
+m.dat.rotate <- bin_lat(occdf = m.dat.rotate, bins = lbins, lat = "p_lat")
+
+# Change column names
+names(m.dat.rotate)[names(m.dat.rotate) == 'lat_bin'] <- "p_lat_bin"
+names(m.dat.rotate)[names(m.dat.rotate) == 'lat_max'] <- "p_lat_max"
+names(m.dat.rotate)[names(m.dat.rotate) == 'lat_mid'] <- "p_lat_mid"
+names(m.dat.rotate)[names(m.dat.rotate) == 'lat_min'] <- "p_lat_min"
+
+# Bin latitude
+m.dat.rotate <- bin_lat(occdf = m.dat.rotate, bins = lbins, lat = "lat")
+
 ################################################################################
 # 4. MACROSTRAT SETUP
 ################################################################################
 
 # Read in data
-carb.macro <- read.csv('https://macrostrat.org/api/v2/units?lith_type=carbonate&environ_class=marine&response=long&format=csv', stringsAsFactors = FALSE)
-sili.macro <- read.csv('https://macrostrat.org/api/v2/units?lith_type=siliciclastic&environ_class=marine&response=long&format=csv', stringsAsFactors = FALSE)
+carb.macro <- get_units(lithology_type = "carbonate", environ_class = "marine")
+sili.macro <- get_units(lithology_type = "siliciclastic", environ_class = "marine")
 
 # Change column names
 names(carb.macro)[names(carb.macro) == 't_age'] <- "min_ma"
@@ -226,7 +247,6 @@ sili.macro.area.period <- sili.macro.period  %>%
 macro.area.period <- rbind(carb.macro.area.period, sili.macro.area.period)
 macro.count.period <- rbind(carb.macro.count.period, sili.macro.count.period)
 
-
 ################################################################################
 # 5. SETUP FOR ANALYSIS
 ################################################################################
@@ -258,3 +278,19 @@ f.m.dat <- m.dat %>%
   filter(Family != 'Triadotiaridae') %>%
   filter(Family != 'Cravenechinidae') %>%
   filter(Family != 'Archaeocidaridae or miocidaridae')
+
+################################################################################
+# 6. ADDITIONAL DATA
+################################################################################
+
+# Sea level
+sea.lvl <- read.csv("Additional_data/vanderMeer_2022.csv")
+sea.lvl$max_ma <- sea.lvl$Ma+0.0001
+names(sea.lvl)[names(sea.lvl) == "Ma"] <- "min_ma"
+sea.lvl <- sea.lvl %>%
+  dplyr::filter(max_ma < 538) %>%
+  dplyr::filter(min_ma > 0)
+sea.lvl <- bin_time(occdf = sea.lvl, bins = stages, method = "mid")
+sea.lvl <- sea.lvl %>%
+  dplyr::group_by(bin_midpoint) %>%
+  dplyr::summarize(mean_sl = mean(TGE_SL_isocorr_m))

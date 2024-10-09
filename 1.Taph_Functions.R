@@ -38,6 +38,7 @@ library(viridis)
 library(raster)
 library(MuMIn)
 library(sjPlot)
+library(rmacrostrat)
 
 ################################################################################
 # 2. FUNCTIONS
