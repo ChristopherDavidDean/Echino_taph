@@ -191,7 +191,7 @@ m.dat.rotate$lat_bin_2 <- factor(m.dat.rotate$lat_bin_2, levels = order_ind)
 # 4. MACROSTRAT SETUP
 ################################################################################
 
-# Read in data
+# Read in data using rmacrostrat
 carb.macro <- get_units(lithology_type = "carbonate", environ_class = "marine")
 sili.macro <- get_units(lithology_type = "siliciclastic", environ_class = "marine")
 
