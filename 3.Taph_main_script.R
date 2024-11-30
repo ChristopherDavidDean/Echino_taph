@@ -144,6 +144,7 @@ ggplot(f.m.dat) +
   ylab("Proportion of total") +
   xlab("Family") +
   coord_flip() +
+  scale_x_discrete(limits=rev) +
   labs(fill="Taphonomic grade") +
   scale_fill_manual(values=(rev(wes_palette("Zissou1")))) +
   theme_bw() +
@@ -441,6 +442,8 @@ test$mid_ma <- as.numeric(as.character(test$mid_ma))
 # Taphonomic grade
 test <- as.data.frame(table(m.dat$Preservation_score, m.dat$bin_midpoint, m.dat$Family))
 names(test) <- c("Preservation_score", "mid_ma", "Family", "Freq")
+test <- test %>%
+  dplyr::filter(Family != "Archaeocidaridae or miocidaridae")
 test$mid_ma <- as.numeric(as.character(test$mid_ma))
 test$Preservation_score <- factor(test$Preservation_score, 
                                   levels = c("5", "4", "3", "2", "1"))
@@ -560,6 +563,8 @@ a <- as.data.frame(table(m.dat.series$Preservation_score,
                          m.dat.series$bin_assignment, 
                          m.dat.series$Family))
 names(a) <- c("Preservation_score", "bin", "Family", "Freq")
+a <- a %>%
+  dplyr::filter(Family != "Archaeocidaridae or miocidaridae")
 a <- merge(a, series, by = 'bin')
 a$Preservation_score <- factor(a$Preservation_score, 
                                levels = c("5", "4", "3", "2", "1"))

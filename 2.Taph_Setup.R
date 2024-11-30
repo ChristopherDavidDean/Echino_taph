@@ -287,7 +287,7 @@ g.m.dat <- g.m.dat %>%
 # Make plot of preservation scores against family, NA values removed
 f.m.dat <- m.dat %>%
   filter(is.na(Family) == F) %>%
-  filter(Family != 'Triadotiaridae') %>%
+  #filter(Family != 'Triadotiaridae') %>%
   #filter(Family != 'Cravenechinidae') %>%
   filter(Family != 'Archaeocidaridae or miocidaridae')
 
